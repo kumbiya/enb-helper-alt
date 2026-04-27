@@ -10,7 +10,8 @@ option(BUILD_DEBUG "Enable debugging options" OFF)
 option(BUILD_SKYRIMAE "Build for Skyrim AE" OFF)
 option(BUILD_SKYRIMVR "Build for Skyrim VR" OFF)
 
-option(BUILD_FALLOUT4 "Build for Fallout 4" OFF)
+option(BUILD_FALLOUT4 "Build for Fallout 4 old-gen" OFF)
+option(BUILD_FALLOUT4_AE "Build for Fallout 4 Anniversary Edition / Next-Gen" OFF)
 
 
 # ---- Cache build vars ----
@@ -29,6 +30,7 @@ if(BUILD_SKYRIMVR)
 	set_from_environment(SkyrimVRPath)
 	set(GamePath ${SkyrimVRPath})
 	set(GameVersion "Skyrim VR")
+
 elseif(BUILD_SKYRIMAE)
 	set(NAME "ENBHelperSE")
 	add_compile_definitions(SKYRIMAE)
@@ -36,13 +38,24 @@ elseif(BUILD_SKYRIMAE)
 	set_from_environment(Skyrim64Path)
 	set(GamePath ${Skyrim64Path})
 	set(GameVersion "Skyrim AE")
+
+elseif(BUILD_FALLOUT4_AE)
+	set(NAME "ENBHelperF4")
+	add_compile_definitions(FALLOUT4)
+	add_compile_definitions(FALLOUT4_AE)
+	set(CommonLibName "CommonLibF4")
+	set_from_environment(Fallout4Path)
+	set(GamePath ${Fallout4Path})
+	set(GameVersion "Fallout 4 Anniversary Edition / Next-Gen")
+
 elseif(BUILD_FALLOUT4)
 	set(NAME "ENBHelperF4")
 	add_compile_definitions(FALLOUT4)
 	set(CommonLibName "CommonLibF4")
 	set_from_environment(Fallout4Path)
 	set(GamePath ${Fallout4Path})
-	set(GameVersion "Fallout 4")
+	set(GameVersion "Fallout 4 old-gen")
+
 else()
 	set(NAME "ENBHelperSE")
 	add_compile_definitions(SKYRIMSE)
@@ -56,7 +69,7 @@ if(NOT BUILD_DEBUG)
 	add_compile_definitions(NDEBUG)
 endif()
 
-if(NOT BUILD_FALLOUT4)
+if(NOT BUILD_FALLOUT4 AND NOT BUILD_FALLOUT4_AE)
 	add_compile_definitions(ENBHELPER_CUSTOM)
 endif()
 
@@ -113,19 +126,27 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_DEBUG OFF)
 
 set(Boost_USE_STATIC_LIBS ON)
 
+
 # ---- Dependencies ----
 
 if(BUILD_SKYRIMVR)
 	add_subdirectory("external/CommonLibVR" CommonLibVR)
+
 elseif(BUILD_SKYRIMAE)
 	add_subdirectory("external/CommonLibAE" CommonLibSSE)
+
+elseif(BUILD_FALLOUT4_AE)
+	add_subdirectory("external/CommonLibF4/CommonLibF4" CommonLibF4)
+
 elseif(BUILD_FALLOUT4)
 	add_subdirectory("external/CommonLibF4/CommonLibF4" CommonLibF4)
+
 else()
 	add_subdirectory("external/CommonLibSSE" CommonLibSSE)
 endif()
 
 find_package(spdlog CONFIG REQUIRED)
+
 
 # ---- Add source files ----
 
@@ -146,6 +167,7 @@ source_group(
 	FILES
 		${CMAKE_CURRENT_BINARY_DIR}/include/Version.h
 )
+
 
 # ---- Create DLL ----
 
@@ -217,7 +239,7 @@ if (MSVC)
 			/external:W0
 
 			/W4	# Warning level
-			/WX # Warning level (warnings are errors)
+			/WX # Warning level, warnings are errors
 
 			"$<$<CONFIG:DEBUG>:/bigobj>"
 			"$<$<CONFIG:RELEASE>:/Zc:inline;/JMC-;/Ob3>"
@@ -243,15 +265,23 @@ target_precompile_headers(
 		src/PCH.h
 )
 
+
 # ---- Post build ----
+
+if(BUILD_FALLOUT4 OR BUILD_FALLOUT4_AE)
+	set(SCRIPT_EXTENDER_FOLDER "F4SE")
+else()
+	set(SCRIPT_EXTENDER_FOLDER "SKSE")
+endif()
 
 if (COPY_BUILD)
 	if (DEFINED GamePath)
 		add_custom_command(
 			TARGET ${PROJECT_NAME}
 			POST_BUILD
-			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${GamePath}/Data/SKSE/Plugins/
-			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> ${GamePath}/Data/SKSE/Plugins/
+			COMMAND ${CMAKE_COMMAND} -E make_directory ${GamePath}/Data/${SCRIPT_EXTENDER_FOLDER}/Plugins/
+			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${PROJECT_NAME}> ${GamePath}/Data/${SCRIPT_EXTENDER_FOLDER}/Plugins/
+			COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PDB_FILE:${PROJECT_NAME}> ${GamePath}/Data/${SCRIPT_EXTENDER_FOLDER}/Plugins/
 		)
 	else ()
 		message(
