@@ -1,4 +1,3 @@
-
 #include "enbhelper.h"
 
 void InitLogger()
@@ -51,7 +50,20 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_s
 	return true;
 }
 
-#if defined(SKYRIMAE)
+#if defined(FALLOUT4)
+
+extern "C" DLLEXPORT constinit auto F4SEPlugin_Version =
+	[]() {
+		F4SE::PluginVersionData v{};
+		v.pluginVersion = Version::MAJOR;
+		v.PluginName(Version::PROJECT);
+		v.AuthorName("doodlez"sv);
+		v.UsesAddressLibrary(true);
+		return v;
+}();
+
+#elif defined(SKYRIMAE)
+
 extern "C" DLLEXPORT constinit auto SKSEPlugin_Version =
 	[]() {
 		SKSE::PluginVersionData v{};
@@ -63,6 +75,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version =
 }();
 
 #elif defined(SKYRIMVR)
+
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 {
 	InitLogger();
@@ -84,7 +97,9 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 
 	return true;
 }
+
 #else
+
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a_skse, SKSE::PluginInfo* a_info)
 {
 	InitLogger();
@@ -106,5 +121,5 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 
 	return true;
 }
-#endif
 
+#endif
